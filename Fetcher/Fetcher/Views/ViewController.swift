@@ -12,13 +12,7 @@ import RxSwift
 final class ViewController: UIViewController {
   private let disposeBag = DisposeBag()
   
-  var items: [ArticleList.Article] = [] {
-    didSet {
-      DispatchQueue.main.async {
-        self.tableView.reloadData()
-      }
-    }
-  }
+  var items: [ArticleList.Article] = []
   
   private var tableView: UITableView {
     return self.view as! UITableView
@@ -36,6 +30,7 @@ final class ViewController: UIViewController {
   
   override func viewDidLoad() {
     super.viewDidLoad()
+    
     fetchArticleList()
   }
   
@@ -44,26 +39,39 @@ final class ViewController: UIViewController {
     let local = { LocalClient().getArticleOnLocal() }
     let fetcher = Fetcher(onRemote: remote, onLocal: local)
     
-    fetcher.fetch()
-      .subscribe(with: self) { owner, tuple in
-        let status = tuple.0
-        let item = tuple.1
+    Task {
+      do {
+        let results = try await fetcher.fetch()
         
-        DispatchQueue.main.async {
-          if status == .loading {
-            owner.tableView.backgroundColor = .gray
-          } else if status == .success {
-            owner.tableView.backgroundColor = .green
-          } else {
-            owner.tableView.backgroundColor = .red
+        for (status, data) in results {
+          switch status {
+          case .loading:
+            print("✨ Loading")
+            displayData(data.articles)
+            break
+            
+          case .success:
+            print("😁 Success")
+            displayData(data.articles)
+            break
+            
+          case .error:
+            print("🔥 Error")
+            displayData(data.articles)
+            break
           }
         }
-
-        self.items = item.articles
-      } onError: { owner, error in
-        print(error.localizedDescription)
+      } catch {
+        // 예외 처리
       }
-      .disposed(by: disposeBag)
+    }
+  }
+  
+  func displayData(_ data: [ArticleList.Article]) {
+    DispatchQueue.main.async {
+        self.items = data
+        self.tableView.reloadData()
+    }
   }
 }
 

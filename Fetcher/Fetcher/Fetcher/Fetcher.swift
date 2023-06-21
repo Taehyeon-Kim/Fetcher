@@ -24,23 +24,25 @@ final class Fetcher<T> {
     self.onRemote = onRemote
     self.onLocal = onLocal
   }
-
-  func fetch() -> Observable<(Status, T)> {
-    return Observable.create { observer in
-      observer.onNext((.loading, self.onLocal()))
+  
+  func fetch() async throws -> [(Status, T)] {
+    var results: [(Status, T)] = []
+    
+    results.append((.loading, await withCheckedContinuation { continuation in
+      continuation.resume(returning: self.onLocal())
+    }))
+    
+    do {
+      let item = try await self.onRemote().value
+      results.append((.success, item))
       
-      self.onRemote().subscribe { item in
-        observer.onNext((.success, item))
-        
-        // 1. 로컬 스토리지 저장
-        // 2. 로컬 스토리지 바인딩
-        
-      } onFailure: { error in
-        observer.onNext((.error, self.onLocal()))
-      }
-      .disposed(by: self.disposeBag)
-
-      return Disposables.create()
+      // 1. 로컬 스토리지 저장
+      // 2. 로컬 스토리지 바인딩
+      
+    } catch {
+      results.append((.error, self.onLocal()))
     }
+    
+    return results
   }
 }
