@@ -1,5 +1,5 @@
 //
-//  Product.swift
+//  ProductEntity.swift
 //  Fetcher
 //
 //  Created by taekki on 2023/08/19.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ProductResponse: Codable {
+struct ProductEntity: Codable {
   let products: [Product]
   let total: Int
   let limit: Int

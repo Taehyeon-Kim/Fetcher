@@ -11,8 +11,13 @@ import RxSwift
 
 final class ViewController: UIViewController {
   
+  // MARK: - Rx
+  
   private let disposeBag = DisposeBag()
-  private let networking = ProductNetworking()
+  
+  // MARK: - Properties
+  
+  private let viewModel = ProductViewModel()
   private var items: [Product] = []
   
   private var tableView: UITableView {
@@ -29,23 +34,16 @@ final class ViewController: UIViewController {
     self.view = tableView
   }
 
-
-  override func viewDidLoad() {
-    super.viewDidLoad()
-  }
-  
   override func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated)
-    
-    networking.request()
-      .subscribe(with: self) { owner, response in
-        owner.displayData(response.products)
+    viewModel.products
+      .subscribe(with: self) { owner, products in
+        owner.displayData(products)
       }
       .disposed(by: disposeBag)
-    
   }
-  
-  func displayData(_ data: [Product]) {
+
+  private func displayData(_ data: [Product]) {
     DispatchQueue.main.async {
         self.items = data
         self.tableView.reloadData()

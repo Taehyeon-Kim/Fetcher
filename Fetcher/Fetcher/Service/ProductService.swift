@@ -13,10 +13,10 @@ final class ProductNetworking: NetworkingType {
   typealias T = ProductAPI
   var provider = MoyaProvider<ProductAPI>()
   
-  func request() -> Observable<ProductResponse> {
+  func request() -> Observable<ProductEntity> {
     return provider.rx
       .request(.fetchAllProducts)
-      .map(ProductResponse.self)
+      .map(ProductEntity.self)
       .asObservable()
   }
 }
