@@ -10,9 +10,10 @@ import RxCocoa
 import RxSwift
 
 final class ViewController: UIViewController {
-  private let disposeBag = DisposeBag()
   
-  var items: [ArticleList.Article] = []
+  private let disposeBag = DisposeBag()
+  private let networking = ProductNetworking()
+  private var items: [Product] = []
   
   private var tableView: UITableView {
     return self.view as! UITableView
@@ -24,50 +25,27 @@ final class ViewController: UIViewController {
     tableView.estimatedRowHeight = UITableView.automaticDimension
     tableView.dataSource = self
     tableView.delegate = self
-    tableView.register(ArticleCell.self, forCellReuseIdentifier: ArticleCell.identifier)
+    tableView.register(ProductCell.self, forCellReuseIdentifier: ProductCell.identifier)
     self.view = tableView
   }
-  
+
+
   override func viewDidLoad() {
     super.viewDidLoad()
-    
-    fetchArticleList()
   }
   
-  func fetchArticleList() {
-    let remote = { HttpClient().fetchArticleListOnSingle() }
-    let local = { LocalClient().getArticleOnLocal() }
-    let fetcher = Fetcher(onRemote: remote, onLocal: local)
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
     
-    Task {
-      do {
-        let results = try await fetcher.fetch()
-        
-        for (status, data) in results {
-          switch status {
-          case .loading:
-            print("✨ Loading")
-            displayData(data.articles)
-            break
-            
-          case .success:
-            print("😁 Success")
-            displayData(data.articles)
-            break
-            
-          case .error:
-            print("🔥 Error")
-            displayData(data.articles)
-            break
-          }
-        }
-      } catch {
-        // 예외 처리
+    networking.request()
+      .subscribe(with: self) { owner, response in
+        owner.displayData(response.products)
       }
-    }
+      .disposed(by: disposeBag)
+    
   }
   
-  func displayData(_ data: [ArticleList.Article]) {
+  func displayData(_ data: [Product]) {
     DispatchQueue.main.async {
         self.items = data
         self.tableView.reloadData()
@@ -81,7 +59,7 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
   }
   
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    let cell = tableView.dequeueReusableCell(withIdentifier: ArticleCell.identifier) as! ArticleCell
+    let cell = tableView.dequeueReusableCell(withIdentifier: ProductCell.identifier) as! ProductCell
     let item = items[indexPath.row]
     cell.configure(with: item)
     return cell
